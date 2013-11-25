@@ -1,34 +1,31 @@
 <?php
 
-
 // Main configuration
 $inQuery = $argv[1] ?: '';
-$root = exec('printf $HOME').'/Library/Application Support/Sublime Text 2/Settings/Session.sublime_session';
-$reProjects = '/"workspaces":[^\[]+([^]]+\])/m';
-$reRowQuery = '/'.preg_quote($inQuery).'/i';
-$projects = array();
+$reRowQuery = '/'.preg_quote($inQuery).'.*\.sublime-project$/i';
 $results = array();
+$cache = "/tmp/alfred2-sublimeprojects.tmp";
+$ttl = 10;
+$paths = (file_exists($cache) && time()-filemtime($cache) < $ttl) ? json_decode(file_get_contents($cache)) : array();
 
 
-if (file_exists($root) && preg_match($reProjects, file_get_contents($root), $out))
+if (!count($paths))
 {
-	$projects = json_decode($out[1]);
+	exec('mdfind "kMDItemFSName=*.sublime-project" | grep -v node_modules', $paths);
+	file_put_contents($cache, json_encode($paths));
+}
 
-	foreach ($projects AS $path)
-	{
-		if (preg_match($reRowQuery, $path))
-		{
-			$pathInfo = pathinfo($path);
-			
-			$results[] = array(
-				'uid' => $path,
-				'arg' => $path,
-				'title' => basename($path, '.'.$pathInfo['extension']),
-				'subtitle' => $path,
-				'icon' => 'icon.png',
-				'valid' => true);
-		}
-	}
+foreach ($paths AS $path)
+{
+	$pathInfo = pathinfo($path);
+	if ($inQuery == '' || preg_match($reRowQuery, $pathInfo['basename']))
+		$results[] = array(
+			'uid' => $path,
+			'arg' => $path,
+			'title' => basename($path, '.'.$pathInfo['extension']),
+			'subtitle' => 'Open (new window) or ⌘ (append) ',
+			'icon' => 'icon.png',
+			'valid' => true);
 }
 
 // No favorites matched
