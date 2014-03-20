@@ -2,7 +2,7 @@
 
 // Main configuration
 $inQuery = $argv[1] ?: '';
-$reRowQuery = '/'.preg_quote($inQuery).'.*\.sublime-project$/i';
+$reRowQuery = '/' . implode('.*?', str_split(preg_quote($inQuery))) . '.*\.sublime-project$/i';
 $results = array();
 $cache = "/tmp/alfred2-sublimeprojects.tmp";
 $ttl = 10;
